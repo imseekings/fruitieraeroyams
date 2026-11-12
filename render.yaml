@@ -1,0 +1,14 @@
+# Render Blueprint: deploys the app as a free-tier-eligible static site.
+services:
+  - type: web
+    name: climate-mosaic
+    runtime: static
+    buildCommand: echo "Nothing to build"
+    staticPublishPath: ./public
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
