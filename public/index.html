@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Climate Mosaic World Map</title>
+<meta name="description" content="Multi-model climate mosaic: decadal projections on a world map, infrastructure impacts and year-by-year GIFs.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f1;--card:#fff;--tx:#1b2220;--mu:#65706b;--bd:#dedcd3;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111614;--card:#1a211e;--tx:#e8ece9;--mu:#98a39d;--bd:#2c3631;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111614;--card:#1a211e;--tx:#e8ece9;--mu:#98a39d;--bd:#2c3631;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 2px}h2{font-size:14px;margin:0 0 8px}h3{font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;color:var(--mu)}
+.sub{color:var(--mu);margin:0 0 16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}label{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:3px}
+select,input[type=range]{font:inherit;padding:6px 8px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx)}input[type=range]{padding:0;border:0;width:170px}
+button{font:inherit;padding:7px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);cursor:pointer}button:disabled{opacity:.5;cursor:default}canvas{width:100%;display:block;border-radius:8px;cursor:crosshair}#read{font-size:13px;color:var(--mu);min-height:20px;margin-bottom:6px}
+#lg{height:12px;border-radius:6px;margin-top:10px}.lgl{display:flex;justify-content:space-between;font-size:12px;color:var(--mu)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+.stat{border:1px solid var(--bd);border-radius:10px;padding:8px 10px}.stat b{display:block;font-size:19px}.stat span{font-size:12px;color:var(--mu)}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--mu);font-weight:600}
+.note{font-size:12px;color:var(--mu)}.sec{display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px;font-weight:600}.sm{display:block;font-weight:400;font-size:12px;color:var(--mu);white-space:normal}td:first-child{white-space:normal;min-width:210px}.bd{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:600}.l0{background:#dcefe2;color:#1d5a34}.l1{background:#fdf0c7;color:#6b4b00}.l2{background:#fcd9b6;color:#8a3b00}.l3{background:#f8c3c3;color:#8c1d1d}.l9{background:var(--bd);color:var(--mu)}
+</style></head><body><main>
+<h1>Climate Mosaic World Map</h1>
+<p class="sub">See where and how much the climate is projected to differ from today, blended from many models and checked against the current climate.</p>
+<div class="card"><div class="row">
+<label>Variable<select id="v"><option value="T">Temperature</option><option value="P">Precipitation</option></select></label>
+<label>Scenario<select id="sc"><option value="ssp126">SSP1-2.6 (low)</option><option value="ssp245" selected>SSP2-4.5 (middle)</option><option value="ssp370">SSP3-7.0 (high)</option><option value="ssp585">SSP5-8.5 (very high)</option></select></label>
+<label>Decade: <b id="yl" style="color:var(--tx)">2050s</b><input type="range" id="yr" min="2030" max="2100" step="10" value="2050"></label>
+<label>Map shows<select id="vw"><option value="chg">Change vs. current climate</option><option value="proj">Projected climate</option><option value="cur">Current climate (1995–2014)</option><option value="sd">Model spread</option></select></label>
+<label>Weighting<select id="w"><option value="skill">Skill-weighted</option><option value="equal">Equal weights</option></select></label>
+</div></div>
+<div class="card"><h2 id="ttl"></h2><div id="read">Hover the map to read values for a location.</div>
+<canvas id="cv"></canvas><div id="lg"></div><div class="lgl"><span id="l0"></span><span id="l1"></span><span id="l2"></span></div>
+<div class="note" style="margin-top:6px">Dots mark low model agreement (fewer than 75% of models agree on the sign of change for precipitation, or spread exceeds half the signal for temperature).</div></div>
+<div class="card"><h3>Infrastructure impacts</h3><div class='row'><label>Location<select id='ipl'></select></label><div class='note' id='ipn' style='align-self:center'></div></div><div id='imp'></div><div class='note' style='margin-top:10px'>Screening-level estimates from the mosaic’s temperature and rainfall change at one grid cell (about 300 km across), using simple rules of thumb: temperature distributions for heat, freeze–thaw and degree days, roughly 6.5% more intense rain per °C, about 0.7% line-capacity loss per °C, and scenario-based sea-level rise. They show where to look more closely and are not engineering assessments. Ranges show the spread across weighted models.</div></div><div class='card'><h3>Year-by-year animation (GIF)</h3><div class='row'><label>From<select id='gy0'></select></label><label>To<select id='gy1'></select></label><label>Speed<select id='gdl'><option value='150'>Fast</option><option value='300' selected>Medium</option><option value='600'>Slow</option></select></label><label>&nbsp;<button id='gbtn' type='button'>Make GIF</button></label><label>&nbsp;<button id='gsave' type='button' disabled>Save GIF</button></label></div><div class='note' id='gst' style='margin:8px 0'>Uses the variable, scenario, map view and weighting chosen above. Each year gets its own frame on one fixed color scale, showing the model-mean trend rather than year-to-year weather.</div><img id='gimg' alt='Animated climate projection' style='max-width:100%;display:none;border-radius:8px'></div><div class='card'><h3>Cross-reference vs. current climate</h3><div class="stats" id="stats"></div><div class="scroll"><table id="xt"></table></div></div>
+<div class="card note"><b>About the data.</b> This page can’t download CMIP6 grids, so the fields are <b>illustrative</b>: ten model members built from idealized, well-documented patterns (Arctic amplification, faster land warming, a North Atlantic warming hole, wetter tropics and high latitudes, drier subtropics) with model-specific sensitivity, pattern noise and baseline biases. The “current climate” is a stylized stand-in for observations, and coastlines are coarse. Real model grids would drop into the same weighting and cross-referencing steps. Weights come from each model’s baseline error against the current climate, and projections use the delta method (current climate plus the mosaic change).</div>
+</main><script>
+const NX=120,NY=60,N=NX*NY,$=id=>document.getElementById(id),ss=(x,a,b)=>{x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)};
+const lat=new Float32Array(N),lon=new Float32Array(N),cl=new Float32Array(N),aw=new Float32Array(N),land=new Uint8Array(N);
+for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const k=j*NX+i;lat[k]=90-3*(j+.5);lon[k]=-180+3*(i+.5);cl[k]=Math.cos(lat[k]*Math.PI/180);aw[k]=cl[k]}
+const AW=aw.reduce((a,b)=>a+b,0),am=f=>{let s=0;for(let k=0;k<N;k++)s+=f[k]*aw[k];return s/AW};
+const POLY=[[-168,66,-162,70,-156,71.5,-141,70,-128,70,-115,68,-95,72,-85,69,-80,63,-94,59,-93,57,-85,55,-80,52,-79,57,-77,62,-70,60,-64,60,-61,56,-56,52,-60,48,-66,45,-70,43,-74,40,-76,35,-81,31,-80,26,-82,26,-83,30,-89,30,-94,29,-97,26,-97,22,-94,18,-90,21,-87,21,-88,16,-84,15,-83,10,-79,9,-77,8,-80,7,-85,10,-87,13,-92,15,-97,16,-105,20,-109,25,-112,31,-114,31,-110,23,-115,28,-117,32,-121,35,-124,40,-124,47,-127,51,-134,57,-141,60,-150,61,-152,58,-158,57,-165,54,-160,59,-166,62,-165,65],
+[-77,8,-72,12,-64,10,-60,8,-52,5,-50,0,-44,-2,-35,-6,-39,-14,-41,-22,-48,-26,-53,-34,-58,-35,-57,-39,-65,-41,-66,-47,-69,-52,-68,-55,-73,-52,-75,-47,-73,-40,-71,-30,-70,-18,-76,-14,-81,-5,-80,0,-78,3],
+[-17,21,-13,28,-9,32,-6,36,10,37,11,33,20,31,32,31,33,28,37,21,43,12,51,12,49,6,41,-2,39,-8,41,-15,35,-24,33,-28,27,-34,19,-35,15,-27,12,-17,13,-8,9,-1,9,4,4,6,-5,5,-8,4,-13,8,-17,14],
+[-9,37,-9,43,-1,46,-4,48,2,51,8,54,8,57,10,57,12,54.5,21,55,24,59,30,60,22,61,21,65,25,65.5,17,62,19,59,16,56,12,56,11,59,6,58,5,62,14,68,20,70,30,70,40,67,41,66.5,44,68,55,68,60,69,70,73,80,73.5,90,76,105,77,113,74,130,71,140,72,160,70,170,70,180,69,180,65,177,63,170,60,163,58,162,55,156,51,156,57,160,61,155,59,143,59,135,55,140,53,141,48,135,43,130,42,129,36,126,35,126,38,122,40,119,38,122,37,119,35,121,32,122,30,120,26,116,23,110,21,108,21.5,106,19,109,15,109,11,105,9,103,10,100,13,100,8,103,2,101,3,98,8,98,16,94,17,92,22,88,22,85,20,80,15,80,10,77,8,73,16,72,21,67,24,62,25,57,26,56,27,50,30,48,29,50,26,52,24,56,26,59,22,55,17,52,16,45,13,43,14,39,21,35,28,34.5,31,36,36,30,36.5,27,37,26,40,23,40,24,38,22,36.5,21,39,19,42,14,45,12.5,44.5,13.5,43,18,40,16,38,15.5,40,12,42,9,44,7,43.5,3,43,3,42,0,39,-1,37.5,-5,36],
+[-180,69,-170,66,-172,64,-180,65],[-5,50,1,51,1.5,53,-2,56,-2,58.5,-5,58.5,-6,56,-3,54,-5,52],[-10,52,-6,52,-6,55,-8,55,-10,54],[-24,65,-18,63.5,-14,64.5,-14,66,-22,66.5],
+[-73,78,-60,82,-30,83.5,-18,80,-20,72,-22,70,-30,68,-40,65,-43,60,-50,62,-54,67,-58,75,-66,76],[-80,73,-68,70,-62,66,-70,62,-78,64,-90,70],[-118,73,-105,73,-101,69,-115,69],[-90,80,-62,82,-70,78],[-85,22,-80,23,-74,20,-78,20],
+[130,33,135,34,140,35,142,39,141,41.5,139.5,40,137,37,133,35.5],[140,42,145,43.5,142,45.5,140,43],[95,5,104,-2,106,-6,101,-3],[109,2,117,7,119,1,116,-4,110,-3],[105,-6,114,-7,114,-8.5,106,-7],[131,-1,141,-2.5,150,-10,141,-9,137,-5,132,-3],[120,18,122,18,124,12,126,7,122,7,120,14],
+[114,-22,122,-18,129,-14,131,-12,137,-12,136,-15,140,-17.5,142,-11,146,-19,153,-26,151,-34,148,-38,141,-38,138,-35,135,-34,130,-32,124,-34,115,-34,113,-26],[173,-35,178,-38,175,-41,174,-39],[172,-41,174,-42,171,-46,167,-46],[49,-12,50,-16,47,-25,44,-24,44,-17],
+[-180,-90,-180,-72,-120,-74,-90,-72,-65,-68,-60,-64,-58,-64,-65,-73,-50,-78,-30,-72,0,-70,30,-69,60,-67,90,-66,120,-66,150,-69,170,-72,180,-72,180,-90]];
+const inP=(p,x,y)=>{let c=false;for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){const xi=p[i],yi=p[i+1],xj=p[j],yj=p[j+1];if((yi>y)!=(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c}return c};
+for(let k=0;k<N;k++)land[k]=POLY.some(p=>inP(p,lon[k],lat[k]))?1:0;
+const gb=(k,a,o,r)=>{const dl=((lon[k]-o+540)%360)-180,dy=lat[k]-a;return Math.exp(-(dy*dy+dl*dl*cl[k]*cl[k])/(r*r))};
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function bf(r,n,sd,a,b){const B=[];for(let q=0;q<n;q++)B.push([r()*140-70,r()*360-180,a+r()*(b-a),(r()+r()+r()-1.5)*2*sd]);const o=new Float32Array(N);for(let k=0;k<N;k++){let s=0;for(const[x,y,rr,A]of B)s+=A*gb(k,x,y,rr);o[k]=s}return o}
+// current climate ("observations")
+const T0=new Float32Array(N),P0=new Float32Array(N);
+for(let k=0;k<N;k++){const la=lat[k],L=land[k],a=Math.abs(la);let t=27.5-.0072*la*la;
+ if(L)t-=5*ss(a,45,70)*(la>0?1:.3)+22*ss(-la,66,80)+14*gb(k,32,88,14)+9*gb(k,-15,-70,7)+4*gb(k,45,-110,8)+14*gb(k,72,-40,10);T0[k]=t;
+ let p=600+1900*Math.exp(-((la/9)**2))-(L?750:350)*Math.exp(-(((a-28)/10)**2));
+ if(L)p*=1-.85*gb(k,23,15,22)-.8*gb(k,24,45,14)-.65*gb(k,-25,133,16)-.6*gb(k,43,100,14);P0[k]=Math.max(40,p)}
+// models
+const SC={ssp126:.55,ssp245:1,ssp370:1.3,ssp585:1.6};
+const M=[["CanESM5",1.25],["UKESM1-0-LL",1.2],["CESM2",1.15],["IPSL-CM6A-LR",1.1],["ACCESS-CM2",1.1],["EC-Earth3",1.05],["NorESM2-LM",.92],["GFDL-ESM4",.9],["MPI-ESM1-2-HR",.88],["MIROC6",.85]].map((a,i)=>{
+ const r=rng(500+i*31),m={n:a[0],s:a[1],u:{},b:{},rm:{}},h=.85+r()*.35,amoc=.3+r()*.7;
+ const uT=new Float32Array(N),uP=new Float32Array(N),pt=bf(r,6,.18,15,35),pp=bf(r,6,1.4,15,35);
+ for(let k=0;k<N;k++){const la=lat[k],a=Math.abs(la),L=land[k];
+  let t=(la>0?1+1.5*ss(la,50,85):1+.25*ss(-la,55,75))*(L?1.35:.85)*(L?1:1+.3*ss(la,60,80))*(!L&&la<0?1-.3*ss(-la,40,55):1)-.6*amoc*gb(k,55,-40,14)+pt[k];uT[k]=t;
+  let p=2.5*Math.exp(-((la/9)**2))-(L?3.2:1.6)*Math.exp(-(((a-27)/9)**2))+5.5*ss(a,45,70)-4*gb(k,38,15,18)-3*gb(k,32,-110,15)-3*gb(k,-27,22,15)-3*gb(k,-33,118,12)-4*gb(k,-35,-72,8)-1.5*gb(k,-5,-60,12)+3*gb(k,24,85,14)+4*gb(k,3,38,10)+2*gb(k,30,112,12)+2*gb(k,13,5,12)+3*gb(k,0,-150,25);
+  uP[k]=(p+pp[k])*h}
+ const mu=am(uT);for(let k=0;k<N;k++)uT[k]/=mu;m.u.T=uT;m.u.P=uP;
+ const off=(r()-.5)*.8,bt=bf(r,5,1.4,15,40),bp=bf(r,5,.2,15,40);for(let k=0;k<N;k++)bt[k]+=off;m.b.T=bt;m.b.P=bp;
+ const rms=f=>{const q=new Float32Array(N);for(let k=0;k<N;k++)q[k]=f[k]*f[k];return Math.sqrt(am(q))};m.rm.T=rms(bt);m.rm.P=rms(bp);return m});
+// colors
+const hx=a=>a.map(h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)));
+const ST={warm:hx(['#fff5d6','#fdd17a','#f59a3c','#e0501f','#a8171b','#5b0a1f']),div:hx(['#7a4a14','#c58b3c','#efe2b8','#f7f7f7','#bfe3dc','#4aaaa0','#0b5d68']),temp:hx(['#2b3a8f','#4f8fd0','#a6d8e8','#f4f1c4','#f5b64a','#d2492a','#7a1230']),rain:hx(['#fbf6e6','#d5e8c4','#7cc5b5','#2f8fb5','#1f4e99','#2a1f6b']),sd:hx(['#f6f2fb','#cdb7e6','#9a6cc4','#5b2a8a'])};
+function rgb(st,t){t=Math.max(0,Math.min(1,t))*(st.length-1);const i=Math.min(st.length-2,t|0),f=t-i,a=st[i],b=st[i+1];return[0,1,2].map(c=>a[c]+(b[c]-a[c])*f)}
+const S={v:'T',sc:'ssp245',yr:2050,vw:'chg',w:'skill'};
+function wq(v,w,q){const p=v.map((x,i)=>[x,w[i]]).sort((a,b)=>a[0]-b[0]),T=w.reduce((a,b)=>a+b,0);let c=0;for(const[x,ww]of p){c+=ww;if(c>=q*T-1e-9)return x}return p[p.length-1][0]}
+function corr(a,b){let ma=am(a),mb=am(b),n=0,da=0,db=0;for(let k=0;k<N;k++){const x=a[k]-ma,y=b[k]-mb;n+=x*y*aw[k];da+=x*x*aw[k];db+=y*y*aw[k]}return n/Math.sqrt(da*db)}
+function compute(){const v=S.v,f=SC[S.sc],d=(S.fy??S.yr+5)-2015;
+ M.forEach(m=>{const g=.93+.021*m.s*f*d+.00012*(f-.8)*d*d-.73;m.g=g;m.d=m.u[v].map(x=>x*g);m.w=S.w==='skill'?1/m.rm[v]**2:1});
+ const tw=M.reduce((a,m)=>a+m.w,0),mean=new Float32Array(N),sd=new Float32Array(N),ag=new Float32Array(N),low=new Uint8Array(N);
+ for(let k=0;k<N;k++){let s=0;for(const m of M)s+=m.w*m.d[k];s/=tw;mean[k]=s;let q=0,a=0;for(const m of M){q+=m.w*(m.d[k]-s)**2;if(Math.sign(m.d[k])===Math.sign(s))a+=m.w}sd[k]=Math.sqrt(q/tw);ag[k]=a/tw;low[k]=v==='P'?(ag[k]<.75?1:0):(sd[k]>.5*Math.abs(s)?1:0)}
+ const base=v==='T'?T0:P0,V=new Float32Array(N);
+ for(let k=0;k<N;k++)V[k]=S.vw==='chg'?mean[k]:S.vw==='sd'?sd[k]:S.vw==='cur'?base[k]:(v==='T'?T0[k]+mean[k]:P0[k]*(1+mean[k]/100));
+ const srt=Float32Array.from(V).sort(),p98=srt[Math.floor(.98*N)],pm=Math.max(Math.abs(srt[Math.floor(.02*N)]),Math.abs(p98));let sc;
+ if(S.vw==='chg')sc=v==='T'?{st:ST.warm,lo:0,hi:Math.max(1,Math.ceil(p98))}:{st:ST.div,lo:-Math.max(5,Math.ceil(pm/5)*5),hi:Math.max(5,Math.ceil(pm/5)*5)};
+ else if(S.vw==='sd')sc={st:ST.sd,lo:0,hi:Math.max(.2,+p98.toFixed(1))};else sc=v==='T'?{st:ST.temp,lo:-40,hi:35}:{st:ST.rain,lo:0,hi:3500};
+ S.R={tw,mean,sd,ag,low,V,sc:S.fixSc||sc,base}}
+const U=()=>S.v==='T'?'°C':'%';
+function draw(c,fw){const R=S.R;c=c||$('cv');const W=fw||c.clientWidth,H=Math.round(W/2),dpr=fw?1:(devicePixelRatio||1);c.width=W*dpr;c.height=H*dpr;if(!fw)c.style.height=H+'px';const g=c.getContext('2d');g.scale(dpr,dpr);
+ const oc=document.createElement('canvas');oc.width=NX;oc.height=NY;const og=oc.getContext('2d'),im=og.createImageData(NX,NY),{st,lo,hi}=R.sc;
+ for(let k=0;k<N;k++){const c3=rgb(st,(R.V[k]-lo)/(hi-lo));im.data[4*k]=c3[0];im.data[4*k+1]=c3[1];im.data[4*k+2]=c3[2];im.data[4*k+3]=255}
+ og.putImageData(im,0,0);g.imageSmoothingEnabled=true;g.drawImage(oc,0,0,W,H);
+ const cs=getComputedStyle(document.documentElement),tx=fw?'#1b2220':cs.getPropertyValue('--tx').trim(),X=x=>(x+180)/360*W,Y=y=>(90-y)/180*H;
+ g.strokeStyle=tx;g.globalAlpha=.55;g.lineWidth=.8;POLY.forEach(p=>{g.beginPath();for(let i=0;i<p.length;i+=2)i?g.lineTo(X(p[i]),Y(p[i+1])):g.moveTo(X(p[0]),Y(p[1]));g.closePath();g.stroke()});
+ if(S.vw!=='cur'&&S.vw!=='sd'){g.fillStyle=tx;g.globalAlpha=.5;for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const k=j*NX+i;if(R.low[k]&&(i+j)%2===0){g.beginPath();g.arc((i+.5)/NX*W,(j+.5)/NY*H,.9,0,7);g.fill()}}}
+ g.globalAlpha=1;if(S.hk!=null){g.strokeStyle=tx;g.lineWidth=1.5;g.beginPath();g.arc(X(lon[S.hk]),Y(lat[S.hk]),6,0,7);g.stroke()}if(S.pin!=null&&!fw){const mx=X(lon[S.pin]),my=Y(lat[S.pin]);g.fillStyle='#c2410c';g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(mx,my-8);g.lineTo(mx+6,my);g.lineTo(mx,my+8);g.lineTo(mx-6,my);g.closePath();g.stroke();g.fill()}
+ const css=st.map(c3=>`rgb(${c3.map(Math.round)})`).join(',');$('lg').style.background=`linear-gradient(90deg,${css})`;
+ const fm=x=>S.vw==='chg'&&S.v==='T'||S.vw==='sd'?x.toFixed(1):Math.round(x);const u=S.vw==='proj'||S.vw==='cur'?(S.v==='T'?'°C':' mm/yr'):U();
+ $('l0').textContent=fm(lo)+u;$('l1').textContent=fm((lo+hi)/2);$('l2').textContent=fm(hi)+u}
+function tables(){const R=S.R,v=S.v,f=(x,d=1)=>(x>0?'+':'')+x.toFixed(d),lm=(a)=>{let s=0,w=0;for(let k=0;k<N;k++)if(land[k]){s+=a[k]*aw[k];w+=aw[k]}return s/w};
+ const gmean=am(R.mean),lmean=lm(R.mean),omean=(gmean*AW-lmean*aw.reduce((a,x,k)=>a+(land[k]?x:0),0))/(AW-aw.reduce((a,x,k)=>a+(land[k]?x:0),0));
+ let la=0;for(let k=0;k<N;k++)if(R.low[k])la+=aw[k];
+ $('stats').innerHTML=[[f(gmean),'global mean change ('+U()+')'],[f(lmean),'land mean ('+U()+')'],[f(omean),'ocean mean ('+U()+')'],[(100*la/AW).toFixed(0)+'%','area with low model agreement']].map(a=>`<div class="stat"><b>${a[0]}</b><span>${a[1]}</span></div>`).join('');
+ const rows=[...M].sort((a,b)=>a.rm[v]-b.rm[v]);
+ $('xt').innerHTML=`<tr><th>Model</th><th>Baseline error (${v==='T'?'°C':'%'})</th><th>Weight</th><th>Global ΔT (°C)</th><th>Pattern match</th></tr>`+rows.map(m=>`<tr><td>${m.n}</td><td>${(v==='T'?m.rm.T:m.rm.P*100).toFixed(v==='T'?2:0)}</td><td>${(100*m.w/R.tw).toFixed(0)}%</td><td>${f(m.g,2)}</td><td>${corr(m.d,R.mean).toFixed(2)}</td></tr>`).join('')}
+function run(){compute();draw();tables();impacts();const vn=S.v==='T'?'Temperature':'Precipitation',vw={chg:'change',proj:'projected',cur:'current',sd:'model spread'}[S.vw];
+ $('ttl').textContent=S.vw==='cur'?`${vn}: current climate (1995–2014)`:`${vn} ${vw}, ${S.yr}s${S.vw==='proj'||S.vw==='chg'?' vs. 1995–2014':''} · ${$('sc').selectedOptions[0].text}`}
+['v','sc','vw','w'].forEach(id=>$(id).onchange=e=>{S[id]=e.target.value;run()});
+$('yr').oninput=e=>{S.yr=+e.target.value;$('yl').textContent=S.yr+'s';run()};
+$('cv').onmousemove=e=>{const r=$('cv').getBoundingClientRect(),i=Math.floor((e.clientX-r.left)/r.width*NX),j=Math.floor((e.clientY-r.top)/r.height*NY);if(i<0||i>=NX||j<0||j>=NY)return;
+ const k=j*NX+i,R=S.R,T=S.v==='T',vals=M.map(m=>m.d[k]),ws=M.map(m=>m.w),ch=R.mean[k],lo=wq(vals,ws,.1),hi=wq(vals,ws,.9),b=R.base[k],pr=T?b+ch:b*(1+ch/100),f=x=>(x>0?'+':'')+x.toFixed(T?1:0);
+ $('read').textContent=`${Math.abs(lat[k]).toFixed(0)}°${lat[k]>=0?'N':'S'}, ${Math.abs(lon[k]).toFixed(0)}°${lon[k]>=0?'E':'W'} (${land[k]?'land':'ocean'}) · now ${T?b.toFixed(1)+'°C':Math.round(b)+' mm/yr'} → ${T?pr.toFixed(1)+'°C':Math.round(pr)+' mm/yr'} · change ${f(ch)}${U()} (10–90%: ${f(lo)} to ${f(hi)}) · ${(100*R.ag[k]).toFixed(0)}% of model weight agrees on sign`;S.hk=k;draw()};
+$('cv').onmouseleave=()=>{S.hk=null;$('read').textContent='Hover the map to read values for a location.';draw()};
+addEventListener('resize',()=>S.R&&draw());matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>S.R&&draw());
+// ---- GIF export ----
+for(let y=2026;y<=2100;y++)['gy0','gy1'].forEach(id=>{const o=document.createElement('option');o.value=o.textContent=y;$(id).appendChild(o)});
+$('gy0').value=2026;$('gy1').value=2100;
+function lzw(px){const clr=256,eoi=257;let size=9,next=258;const dict=new Map(),out=[];let cur=0,nb=0;
+ const put=c=>{cur|=c<<nb;nb+=size;while(nb>=8){out.push(cur&255);cur>>=8;nb-=8}};
+ const bump=()=>{if(next>=(1<<size)&&size<12)size++};
+ put(clr);let p=px[0];
+ for(let i=1;i<px.length;i++){const c=px[i],k=(p<<8)|c,v=dict.get(k);if(v!==undefined){p=v;continue}
+  put(p);bump();if(next<4096)dict.set(k,next++);else{put(clr);dict.clear();size=9;next=258}p=c}
+ put(p);bump();put(eoi);if(nb>0)out.push(cur&255);return out}
+function gifBuild(fr,W,H,pal,dl){const b=[],w=n=>b.push(n&255,(n>>8)&255);
+ b.push(71,73,70,56,57,97);w(W);w(H);b.push(0xF7,0,0);pal.forEach(c=>b.push(c[0],c[1],c[2]));
+ b.push(0x21,0xFF,11,78,69,84,83,67,65,80,69,50,46,48,3,1,0,0,0);
+ fr.forEach((px,i)=>{b.push(0x21,0xF9,4,0);w(i===fr.length-1?150:dl);b.push(0,0,0x2C);w(0);w(0);w(W);w(H);b.push(0,8);
+  const d=lzw(px);for(let j=0;j<d.length;j+=255){const n=Math.min(255,d.length-j);b.push(n);for(let q=0;q<n;q++)b.push(d[j+q])}b.push(0)});
+ b.push(0x3B);return new Uint8Array(b)}
+const tick=()=>new Promise(r=>setTimeout(r));
+async function makeGif(){
+ const y0=+$('gy0').value,y1=+$('gy1').value,dl=+$('gdl').value/10,b=$('gbtn'),st=$('gst');
+ if(!(y1>y0)){st.textContent='Choose an end year after the start year.';return}
+ if(S.vw==='cur'){st.textContent='The current climate doesn’t change by year. Pick change, projected or model spread in “Map shows”.';return}
+ b.disabled=true;$('gsave').disabled=true;S.hk=null;
+ try{
+  S.fy=y1;S.fixSc=null;compute();S.fixSc=S.R.sc;
+  const W=640,MH=320,FH=MH+60,mc=document.createElement('canvas'),fc=document.createElement('canvas');fc.width=W;fc.height=FH;const g=fc.getContext('2d',{willReadFrequently:true});
+  const sct=S.R.sc.st,pal=[];for(let i=0;i<200;i++)pal.push(rgb(sct,i/199).map(Math.round));for(let i=0;i<56;i++){const v=Math.round(i*255/55);pal.push([v,v,v])}
+  const cache=new Int16Array(32768).fill(-1),idx=(r,gg,bb)=>{const key=((r>>3)<<10)|((gg>>3)<<5)|(bb>>3);let c=cache[key];if(c<0){let bd=1e9;for(let i=0;i<256;i++){const q=pal[i],e=(q[0]-r)**2+(q[1]-gg)**2+(q[2]-bb)**2;if(e<bd){bd=e;c=i}}cache[key]=c}return c};
+  const vn=S.v==='T'?'Temperature':'Precipitation',vt={chg:'change',proj:'projected',sd:'model spread'}[S.vw],ttl=`${vn} ${vt}${S.vw==='sd'?'':' vs. 1995–2014'} · ${$('sc').selectedOptions[0].text}`;
+  const frames=[];
+  for(let y=y0;y<=y1;y++){
+   S.fy=y;compute();draw(mc,W);
+   g.fillStyle='#fff';g.fillRect(0,0,W,FH);g.drawImage(mc,0,0,W,MH);
+   g.font='bold 30px system-ui,sans-serif';g.lineWidth=5;g.lineJoin='round';g.strokeStyle='#fff';g.fillStyle='#1b2220';g.textAlign='left';g.strokeText(y,12,38);g.fillText(y,12,38);
+   g.font='13px system-ui,sans-serif';g.fillText(ttl,12,MH+18);
+   const gr=g.createLinearGradient(12,0,W-12,0);sct.forEach((c3,i)=>gr.addColorStop(i/(sct.length-1),`rgb(${c3.map(Math.round)})`));g.fillStyle=gr;g.fillRect(12,MH+26,W-24,10);
+   g.fillStyle='#1b2220';g.font='12px system-ui,sans-serif';g.fillText($('l0').textContent,12,MH+54);g.textAlign='center';g.fillText($('l1').textContent,W/2,MH+54);g.textAlign='right';g.fillText($('l2').textContent,W-12,MH+54);g.textAlign='left';
+   const d=g.getImageData(0,0,W,FH).data,px=new Uint8Array(W*FH);for(let i=0;i<px.length;i++)px[i]=idx(d[4*i],d[4*i+1],d[4*i+2]);frames.push(px);
+   st.textContent=`Rendering frame ${y-y0+1} of ${y1-y0+1}…`;await tick()}
+  st.textContent='Encoding GIF…';await tick();
+  const bytes=gifBuild(frames,W,FH,pal,dl);S.gif=bytes;
+  let s='';for(let i=0;i<bytes.length;i+=32768)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+32768));
+  const im=$('gimg');im.src='data:image/gif;base64,'+btoa(s);im.style.display='block';
+  st.textContent=`Done: ${y1-y0+1} frames, ${(bytes.length/1048576).toFixed(1)} MB. The last frame holds longer before the loop restarts.`;
+  S.gname=`climate-${S.v==='T'?'temperature':'precipitation'}-${S.vw}-${S.sc}-${y0}-${y1}.gif`;$('gsave').disabled=false;
+ }catch(e){st.textContent='Couldn’t build the GIF: '+(e&&e.message||e)}
+ S.fy=null;S.fixSc=null;b.disabled=false;run()}
+$('gbtn').onclick=makeGif;
+// ---- Infrastructure impacts ----
+const PRE=[['US Southwest',34,-112],['US Great Plains',40,-98],['US Southeast',33,-84],['Canadian Prairies',53,-105],['Alaska interior',65,-150],['Amazon basin',-5,-60],['Southern Brazil',-22,-50],['Western Europe',49,3],['Iberia',40,-4],['Sahel',14,5],['Southern Africa',-26,25],['Middle East',28,45],['North India',26,80],['East China',32,114],['Southeast Asia',14,102],['Siberia',62,100],['Australian interior',-25,133]];
+const nearLand=k=>{if(land[k])return k;let b=k,bd=1e9;for(let q=0;q<N;q++)if(land[q]){const dl=((lon[q]-lon[k]+540)%360)-180,dy=lat[q]-lat[k],e=dy*dy+dl*dl*cl[k]*cl[k];if(e<bd){bd=e;b=q}}return b};
+const cellOf=(la,lo)=>Math.floor((90-la)/3)*NX+Math.floor((lo+180)/3);
+const isCoast=k=>{const i=k%NX,j=(k/NX)|0;return [[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>{const jj=j+b;if(jj<0||jj>=NY)return false;return !land[jj*NX+((i+a+NX)%NX)]})};
+const erf=x=>{const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+.3275911*x);return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x))};
+const Ph=z=>.5*(1+erf(z/Math.SQRT2)),phi=z=>Math.exp(-z*z/2)/2.5066282746,lv=(x,t)=>x<t[0]?0:x<t[1]?1:x<t[2]?2:3,LV=['Low','Moderate','High','Severe'];
+const hr=m=>Math.max(-.4,Math.min(1.2,.065*m.dT+.003*m.dP));
+function met(k,dT,dP){const T=T0[k]+dT,sg=2.5+8.5*ss(Math.abs(lat[k]),8,50),z=(T-18)/sg;
+ return{dT,dP,hot:365*(1-Ph((30-T)/sg)),ft:365*(Ph((5-T)/sg)-Ph((-5-T)/sg)),cdd:365*((T-18)*Ph(z)+sg*phi(z)),hdd:365*((18-T)*Ph(-z)+sg*phi(z)),rp:Math.exp(4.605/(1+hr({dT,dP}))),pf:T<-3?1:0}}
+const ROWS=[
+{sec:'Roadways',label:'Extreme-heat days (Tmax ≥ 35 °C)',note:'Pavement rutting and buckling',u:' days',dp:0,fn:m=>m.hot,rate:(a,b)=>lv(b-a,[5,15,40])},
+{sec:'Roadways',label:'Freeze–thaw days',note:'Cracking and potholes; fewer days eases stress',u:' days',dp:0,fn:m=>m.ft,rate:(a,b)=>b>a?lv(b-a,[5,15,30]):0},
+{sec:'Roadways',label:'Heavy-rain intensity (today = 100)',note:'Washouts, flooded roadbeds, culvert overtopping',u:'',dp:0,fn:m=>100*(1+hr(m)),rate:(a,b)=>lv(b-a,[5,12,25])},
+{sec:'Roadways',label:'Asphalt binder upgrade',note:'High-temperature grade steps needed (6 °C each)',u:' steps',dp:1,fn:m=>Math.max(0,m.dT*1.15/6),rate:(a,b)=>lv(b-a,[.25,.5,1])},
+{sec:'Power infrastructure',label:'Cooling degree days (base 18 °C)',note:'Air-conditioning load and summer peak demand',u:'',dp:0,fn:m=>m.cdd,rate:(a,b)=>lv(b-a,[100,300,600])},
+{sec:'Power infrastructure',label:'Heating degree days (base 18 °C)',note:'Fewer means lower winter heating demand',u:'',dp:0,fn:m=>m.hdd,rate:(a,b)=>b>a?lv(b-a,[100,300,600]):0},
+{sec:'Power infrastructure',label:'Transmission line capacity (today = 100)',note:'Conductors carry less current in hotter air',u:'',dp:1,fn:m=>100-.7*m.dT,rate:(a,b)=>lv(a-b,[1,2,4])},
+{sec:'Power infrastructure',label:'Thermal plant efficiency (today = 100)',note:'Hotter air and cooling water reduce output',u:'',dp:1,fn:m=>100-.45*m.dT,rate:(a,b)=>lv(a-b,[1,2,3.5])},
+{sec:'Power infrastructure',label:'Solar PV output (today = 100)',note:'Panels lose about 0.4% per °C',u:'',dp:1,fn:m=>100-.4*m.dT,rate:(a,b)=>lv(a-b,[.8,1.6,3])},
+{sec:'Power infrastructure',label:'Hydropower runoff proxy (today = 100)',note:'Rain gains offset by evaporation losses',u:'',dp:0,fn:m=>100+2*m.dP-2.5*m.dT,rate:(a,b)=>lv(a-b,[5,15,30])},
+{sec:'Built infrastructure',label:'Today’s 100-year downpour returns every',note:'Stormwater and drainage design storms',u:' yrs',dp:0,fn:m=>m.rp,rate:(a,b)=>b<35?3:b<60?2:b<85?1:0},
+{sec:'Built infrastructure',label:'Bridge thermal movement',note:'Extra expansion per 100 m span (joints, bearings)',u:' mm',dp:1,fn:m=>1.2*m.dT,rate:(a,b)=>lv(b-a,[1.5,3,5])},
+{sec:'Built infrastructure',label:'Permafrost under foundations',note:'Frozen ground that stops supporting structures',mode:'p',fn:m=>m.pf},
+{sec:'Built infrastructure',label:'Sea-level rise since 2005',note:'Applies to low-lying coastal assets',mode:'s'}];
+function impacts(){const el=$('imp');if(S.pin==null)return;
+ const k=S.pin,y=S.yr+5,f=SC[S.sc],d=y-2015,fx=(x,n)=>x.toFixed(n),sg=(x,n)=>(x>.0001?'+':x<-.0001?'−':'')+fx(Math.abs(x),n);
+ const gs=M.map(m=>.93+.021*m.s*f*d+.00012*(f-.8)*d*d-.73),dTs=M.map((m,i)=>m.u.T[k]*gs[i]),dPs=M.map((m,i)=>m.u.P[k]*gs[i]);
+ const wT=M.map(m=>S.w==='skill'?1/m.rm.T**2:1),wP=M.map(m=>S.w==='skill'?1/m.rm.P**2:1),sT=wT.reduce((a,b)=>a+b),sP=wP.reduce((a,b)=>a+b),w=wT.map((x,i)=>x/sT+wP[i]/sP),sw=w.reduce((a,b)=>a+b);
+ const wm=a=>a.reduce((s,x,i)=>s+x*w[i],0)/sw,now=met(k,0,0),fut=M.map((m,i)=>met(k,dTs[i],dPs[i]));
+ const t=y-2005,tg={ssp126:.5,ssp245:.6,ssp370:.7,ssp585:.85}[S.sc],kk=(tg-.0035*95)/9025,slr=100*(.0035*t+kk*t*t),coast=isCoast(k),rows={},lvls={};
+ ROWS.forEach(r=>{let cells,lvl;
+  if(r.mode==='p'){const n=r.fn(now),share=wm(fut.map(r.fn));cells=[n?'Yes':'No',n?Math.round(100*share)+'% of model weight':'No',n?(share<.5?'Thaw likely':'Persists, warming'):'—'];lvl=n?(share<.5?3:1):0}
+  else if(r.mode==='s'){cells=['0 cm','+'+fx(slr,0)+' cm',coast?'Applies here (coastal cell)':'Inland cell, not directly exposed'];lvl=coast?lv(slr,[15,30,60]):null}
+  else{const nv=r.fn(now),fs=fut.map(r.fn),fm=wm(fs),ch=fs.map(x=>x-nv);cells=[fx(nv,r.dp)+r.u,fx(fm,r.dp)+r.u,`${sg(wm(ch),r.dp)}${r.u} (${sg(wq(ch,w,.1),r.dp)} to ${sg(wq(ch,w,.9),r.dp)})`];lvl=r.rate(nv,fm)}
+  (rows[r.sec]=rows[r.sec]||[]).push(`<tr><td>${r.label}<span class='sm'>${r.note}</span></td><td>${cells[0]}</td><td>${cells[1]}</td><td>${cells[2]}</td><td>${lvl==null?"<span class='bd l9'>n/a</span>":`<span class='bd l${lvl}'>${LV[lvl]}</span>`}</td></tr>`);
+  if(lvl!=null)(lvls[r.sec]=lvls[r.sec]||[]).push(lvl)});
+ let h='';for(const s of ['Roadways','Power infrastructure','Built infrastructure']){const ls=lvls[s]||[],o=ls.length?Math.round(ls.reduce((a,b)=>a+b)/ls.length):0;
+  h+=`<div class='sec'><span>${s}</span><span class='bd l${o}'>${LV[o]} overall</span></div><div class='scroll'><table><tr><th>Indicator</th><th>Now</th><th>${S.yr}s</th><th>Change (10–90% range)</th><th>Risk</th></tr>${rows[s].join('')}</table></div>`}
+ el.innerHTML=h;
+ $('ipn').textContent=`Grid cell near ${Math.abs(lat[k]).toFixed(0)}°${lat[k]>=0?'N':'S'}, ${Math.abs(lon[k]).toFixed(0)}°${lon[k]>=0?'E':'W'} · current ${T0[k].toFixed(1)} °C, ${Math.round(P0[k])} mm/yr · click the map to choose another place.`}
+const ipl=$('ipl');PRE.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p[0];ipl.appendChild(o)});
+{const o=document.createElement('option');o.value=-1;o.textContent='Clicked location';ipl.appendChild(o)}
+ipl.value=0;S.pin=nearLand(cellOf(PRE[0][1],PRE[0][2]));
+ipl.onchange=()=>{const i=+ipl.value;if(i>=0)S.pin=nearLand(cellOf(PRE[i][1],PRE[i][2]));impacts();draw()};
+$('cv').onclick=e=>{const r=$('cv').getBoundingClientRect(),i=Math.floor((e.clientX-r.left)/r.width*NX),j=Math.floor((e.clientY-r.top)/r.height*NY);if(i<0||i>=NX||j<0||j>=NY)return;S.pin=nearLand(j*NX+i);ipl.value=-1;impacts();draw()};
+$('gsave').onclick=async()=>{const st=$('gst');try{const d=window.claude?await window.claude.use('downloads'):null;if(!d){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([S.gif],{type:'image/gif'}));a.download=S.gname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);st.textContent='Saved.';return}await d.save({filename:S.gname,data:S.gif});st.textContent='Saved.'}catch(e){st.textContent=e&&e.code==='declined'?'Save cancelled.':'Couldn’t save the GIF here. Try right-clicking or long-pressing the preview.'}};
+run();
+</script></body></html>
